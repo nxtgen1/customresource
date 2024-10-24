@@ -1,0 +1,20 @@
+Resources:
+  S3RandomCustomResource:
+    Type: "Custom::SimpleResource"
+    Properties:
+      ServiceToken: arn:aws:lambda:eu-north-1:442426851096:function:lambda7random-Lambda7RandomFunction-3Ix5L2hWryyM
+
+  S3RandomBucket:
+    Type: "AWS::S3::Bucket"
+    Properties:
+      BucketName: !Sub "s3-random-${S3RandomCustomResource.RandomNumber}-custom"  # Use the random number from Lambda
+
+Outputs:
+  S3RandomBucketName:
+    Description: "The name of the custom S3 random bucket."
+    Value: !GetAtt S3RandomBucket.Arn
+
+  S3RandomLambdaNumber:
+    Description: "The random number returned from the Lambda7Random function."
+    Value: !GetAtt S3RandomCustomResource.RandomNumber
+

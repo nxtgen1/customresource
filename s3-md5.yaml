@@ -1,0 +1,26 @@
+Parameters:
+  InputString:
+    Type: String
+    Default: "default-string"
+    Description: "The input string to pass to the Lambda function."
+
+Resources:
+  S3MD5CustomResource:
+    Type: "Custom::SimpleResource"
+    Properties:
+      ServiceToken: arn:aws:lambda:eu-north-1:442426851096:function:lambda-md5-LambdaMD5Function-t1jsDCQnTOVu
+      InputString: !Ref InputString
+
+  S3MD5Bucket:
+    Type: "AWS::S3::Bucket"
+    Properties:
+      BucketName: !Sub "s3-md5-${S3MD5CustomResource.ModifiedString}-from-${InputString}"  # Use MD5 prefix and input string
+
+Outputs:
+  S3MD5BucketName:
+    Description: "The name of the custom S3 bucket."
+    Value: !GetAtt S3MD5Bucket.Arn
+
+  S3MD5LambdaModifiedString:
+    Description: "The modified string returned from the LambdaMD5 function."
+    Value: !GetAtt S3MD5CustomResource.ModifiedString

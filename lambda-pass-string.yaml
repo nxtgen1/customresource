@@ -1,0 +1,85 @@
+Resources:
+  LambdaPassStringFunction:
+    Type: "AWS::Lambda::Function"
+    Properties:
+      Handler: index.handler
+      Runtime: python3.9
+      Role: !GetAtt LambdaPassStringExecutionRole.Arn
+      Timeout: 60
+      Code:
+        ZipFile: |
+          import json
+          import logging
+          import urllib3
+
+          logger = logging.getLogger()
+          logger.setLevel(logging.INFO)
+
+          def handler(event, context):
+              logger.info(f"Received event: {json.dumps(event)}")
+
+              # Retrieve the input string
+              input_string = event['ResourceProperties'].get('InputString', 'default-string')
+
+              # Append '-aumentado' to the input string
+              modified_string = f"{input_string}-aumentado"
+              
+              # Prepare response data
+              response_data = {
+                  'ModifiedString': modified_string
+              }
+
+              # Send the CloudFormation response
+              send_response(event, context, "SUCCESS", response_data)
+
+          def send_response(event, context, status, response_data):
+              response_url = event['ResponseURL']
+              logger.info(f"Response URL: {response_url}")
+
+              response_body = {
+                  "Status": status,
+                  "Reason": f"See the details in CloudWatch Log Stream: {context.log_stream_name}",
+                  "PhysicalResourceId": context.log_stream_name,
+                  "StackId": event['StackId'],
+                  "RequestId": event['RequestId'],
+                  "LogicalResourceId": event['LogicalResourceId'],
+                  "Data": response_data
+              }
+
+              json_response_body = json.dumps(response_body)
+              logger.info(f"Response body: {json_response_body}")
+
+              http = urllib3.PoolManager()
+              try:
+                  response = http.request('PUT', response_url, body=json_response_body, headers={'Content-Type': 'application/json'})
+                  logger.info(f"Response status: {response.status}")
+              except Exception as e:
+                  logger.error(f"Failed to send response: {str(e)}")
+                  raise
+
+  LambdaPassStringExecutionRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service: "lambda.amazonaws.com"
+            Action: "sts:AssumeRole"
+      Policies:
+        - PolicyName: "LambdaPassStringExecutionPolicy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: "Allow"
+                Action:
+                  - "logs:CreateLogGroup"
+                  - "logs:CreateLogStream"
+                  - "logs:PutLogEvents"
+                Resource: "*"
+
+Outputs:
+  LambdaPassStringFunctionArn:
+    Description: "The ARN of the LambdaPassString function."
+    Value: !GetAtt LambdaPassStringFunction.Arn

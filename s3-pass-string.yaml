@@ -1,0 +1,26 @@
+Parameters:
+  InputString:
+    Type: String
+    Default: "default-name"
+    Description: "The input string to pass to the Lambda function."
+
+Resources:
+  S3PassStringCustomResource:
+    Type: "Custom::SimpleResource"
+    Properties:
+      ServiceToken: arn:aws:lambda:eu-north-1:442426851096:function:lambda-pass-string-LambdaPassStringFunction-THTQl4c5Ljzv
+      InputString: !Ref InputString
+
+  S3PassStringBucket:
+    Type: "AWS::S3::Bucket"
+    Properties:
+      BucketName: !Sub "s3-name-${S3PassStringCustomResource.ModifiedString}-super"  # Use the modified string from Lambda
+
+Outputs:
+  S3PassStringBucketName:
+    Description: "The name of the custom S3 bucket."
+    Value: !GetAtt S3PassStringBucket.Arn
+
+  S3PassStringLambdaModifiedString:
+    Description: "The modified string returned from the LambdaPassString function."
+    Value: !GetAtt S3PassStringCustomResource.ModifiedString
